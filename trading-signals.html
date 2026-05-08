@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trading AI — Live Signals</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #21262d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --green: #3fb950;
+      --green-bg: rgba(63,185,80,0.12);
+      --red: #f85149;
+      --red-bg: rgba(248,81,73,0.12);
+      --yellow: #d29922;
+      --yellow-bg: rgba(210,153,34,0.12);
+      --blue: #58a6ff;
+      --accent: #1f6feb;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .status-label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .refresh-btn {
+      background: var(--border);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .refresh-btn:hover { background: #30363d; }
+    .refresh-btn.spinning svg { animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Main ── */
+    main { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stat-value.green { color: var(--green); }
+    .stat-value.red   { color: var(--red); }
+    .stat-value.blue  { color: var(--blue); }
+
+    /* ── Filters ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover, .filter-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .search-input {
+      margin-left: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 14px;
+      color: var(--text);
+      font-size: 13px;
+      width: 200px;
+      outline: none;
+    }
+
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--muted); }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    thead th {
+      background: #1c2128;
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    thead th:hover { color: var(--text); }
+    thead th .sort-arrow { margin-left: 4px; opacity: 0.4; }
+    thead th.sorted .sort-arrow { opacity: 1; color: var(--blue); }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+    td {
+      padding: 13px 16px;
+      vertical-align: middle;
+    }
+
+    /* Signal badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge.buy    { background: var(--green-bg); color: var(--green); }
+    .badge.sell   { background: var(--red-bg);   color: var(--red); }
+    .badge.hold   { background: var(--yellow-bg); color: var(--yellow); }
+    .badge.strong_buy  { background: var(--green-bg); color: var(--green); }
+    .badge.strong_sell { background: var(--red-bg);   color: var(--red); }
+
+    /* Confidence bar */
+    .conf-wrap { display: flex; align-items: center; gap: 8px; }
+    .conf-bar  {
+      flex: 1; height: 4px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      min-width: 60px;
+    }
+
+    .conf-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+
+    .conf-fill.high   { background: var(--green); }
+    .conf-fill.medium { background: var(--yellow); }
+    .conf-fill.low    { background: var(--red); }
+
+    .conf-pct {
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 34px;
+      text-align: right;
+    }
+
+    /* Symbol */
+    .symbol { font-weight: 700; letter-spacing: 0.5px; }
+    .asset-type {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* Price */
+    .price { font-family: 'SF Mono', 'Consolas', monospace; }
+    .price-change.pos { color: var(--green); }
+    .price-change.neg { color: var(--red); }
+
+    /* Timestamp */
+    .ts { font-size: 12px; color: var(--muted); }
+
+    /* ── Loading / Error ── */
+    #state-message {
+      padding: 60px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    .error-icon { font-size: 32px; margin-bottom: 12px; }
+    .error-text { color: var(--red); font-size: 15px; margin-bottom: 8px; font-weight: 600; }
+    .error-detail { font-size: 13px; margin-bottom: 12px; }
+    .error-code {
+      display: inline-block;
+      background: #1c1c1c;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--red);
+      margin-bottom: 16px;
+      max-width: 500px;
+      word-break: break-all;
+    }
+    .error-hint {
+      font-size: 12px;
+      color: var(--muted);
+      max-width: 440px;
+      margin: 0 auto;
+      line-height: 1.6;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      text-align: left;
+    }
+    .error-hint b { color: var(--text); }
+
+    /* ── Raw JSON drawer ── */
+    .raw-toggle {
+      background: none; border: none;
+      color: var(--muted); font-size: 12px;
+      cursor: pointer; padding: 0;
+      margin-top: 20px;
+      display: block;
+    }
+    .raw-toggle:hover { color: var(--text); }
+
+    #raw-drawer {
+      display: none;
+      margin-top: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    #raw-drawer pre {
+      font-size: 12px;
+      font-family: 'SF Mono', 'Consolas', monospace;
+      color: var(--muted);
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 400px;
+      overflow: auto;
+    }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 40px;
+      padding: 0 32px 32px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 700px) {
+      header { padding: 12px 16px; }
+      main { padding: 16px; }
+      .search-input { width: 140px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">📈</div>
+    TradingAI Signals
+  </div>
+  <div class="header-right">
+    <div style="display:flex;align-items:center;gap:6px">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="status-label" id="status-label">Connecting…</span>
+    </div>
+    <button class="refresh-btn" id="refresh-btn" onclick="loadSignals()">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M1 4s.5-3 7-3a7 7 0 1 1-6.93 8"/>
+        <polyline points="1 1 1 4 4 4"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- Stats -->
+  <div class="stats-bar" id="stats-bar" style="display:none">
+    <div class="stat-card">
+      <div class="stat-label">Total Signals</div>
+      <div class="stat-value blue" id="stat-total">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Buy / Strong Buy</div>
+      <div class="stat-value green" id="stat-buys">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Sell / Strong Sell</div>
+      <div class="stat-value red" id="stat-sells">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Hold</div>
+      <div class="stat-value" id="stat-holds">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Confidence</div>
+      <div class="stat-value" id="stat-conf">—</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar" id="toolbar" style="display:none">
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" data-filter="buy"  onclick="setFilter('buy',this)">Buy</button>
+    <button class="filter-btn" data-filter="sell" onclick="setFilter('sell',this)">Sell</button>
+    <button class="filter-btn" data-filter="hold" onclick="setFilter('hold',this)">Hold</button>
+    <input class="search-input" id="search-input" placeholder="Search symbol…" oninput="renderTable()" />
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap" id="table-wrap">
+    <div id="state-message">
+      <div class="spinner"></div>
+      <div>Loading signals…</div>
+    </div>
+    <table id="signals-table" style="display:none">
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Raw JSON -->
+  <button class="raw-toggle" id="raw-toggle" style="display:none" onclick="toggleRaw()">▸ Show raw JSON</button>
+  <div id="raw-drawer"><pre id="raw-pre"></pre></div>
+</main>
+
+<footer id="footer" style="display:none">
+  Last updated: <span id="last-updated">—</span> &nbsp;·&nbsp; Auto-refreshes every 60 s
+</footer>
+
+<script>
+  // Always call /signals on the same host — works locally and on Railway
+  const API_URL = `${location.protocol}//${location.host}/signals`;
+  const API_KEY = null; // key is handled server-side
+
+  let allSignals = [];
+  let currentFilter = 'all';
+  let sortKey = null;
+  let sortAsc = true;
+  let rawVisible = false;
+
+  // ── Fetch ──────────────────────────────────────────────────────────────────
+  async function loadSignals() {
+    const btn = document.getElementById('refresh-btn');
+    btn.classList.add('spinning');
+    setStatus('connecting');
+
+    try {
+      const headers = {};
+      if (API_KEY) headers['Authorization'] = `Bearer ${API_KEY}`;
+      const res = await fetch(API_URL, { headers });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+
+      const data = await res.json();
+
+      // Normalise — handle { strategies: { strategyName: [...], ... } } shape
+      // as well as plain arrays or { signals/data: [...] }
+      let signals = [];
+      if (Array.isArray(data)) {
+        signals = data;
+      } else if (Array.isArray(data.signals)) {
+        signals = data.signals;
+      } else if (Array.isArray(data.data)) {
+        signals = data.data;
+      } else if (data.strategies && typeof data.strategies === 'object') {
+        // Flatten all strategy arrays into one list
+        for (const key of Object.keys(data.strategies)) {
+          if (Array.isArray(data.strategies[key])) {
+            signals.push(...data.strategies[key]);
+          }
+        }
+      } else {
+        signals = [data];
+      }
+
+      // Flatten nested objects (indicators, levels, etc.) into each signal row
+      signals = signals.map(s => flattenSignal(s));
+
+      allSignals = signals;
+
+      document.getElementById('raw-pre').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('raw-toggle').style.display = 'block';
+      document.getElementById('footer').style.display = 'block';
+      document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+
+      buildStats(signals);
+      buildTable(signals);
+      setStatus('live');
+
+    } catch (err) {
+      // TypeError with "Failed to fetch" almost always means CORS or network
+      const isCors = err instanceof TypeError && /fetch|network|cors/i.test(err.message);
+      const msg = isCors
+        ? `CORS / Network error: "${err.message}" — the API is blocking browser requests.`
+        : err.message;
+      showError(msg, isCors);
+      setStatus('error');
+    } finally {
+      btn.classList.remove('spinning');
+    }
+  }
+
+  // ── Status ─────────────────────────────────────────────────────────────────
+  function setStatus(state) {
+    const dot   = document.getElementById('status-dot');
+    const label = document.getElementById('status-label');
+    if (state === 'live') {
+      dot.style.background = 'var(--green)';
+      dot.style.boxShadow  = '0 0 6px var(--green)';
+      label.textContent = 'Live';
+    } else if (state === 'error') {
+      dot.style.background = 'var(--red)';
+      dot.style.boxShadow  = '0 0 6px var(--red)';
+      label.textContent = 'Error';
+    } else {
+      dot.style.background = 'var(--yellow)';
+      dot.style.boxShadow  = '0 0 6px var(--yellow)';
+      label.textContent = 'Connecting…';
+    }
+  }
+
+  // ── Stats ──────────────────────────────────────────────────────────────────
+  function buildStats(signals) {
+    const buys  = signals.filter(s => /buy/i.test(getSignal(s))).length;
+    const sells = signals.filter(s => /sell/i.test(getSignal(s))).length;
+    const holds = signals.filter(s => /hold/i.test(getSignal(s))).length;
+    const confs = signals.map(s => getConf(s)).filter(c => c !== null);
+    const avgConf = confs.length ? Math.round(confs.reduce((a,b) => a+b, 0) / confs.length) : null;
+
+    document.getElementById('stat-total').textContent = signals.length;
+    document.getElementById('stat-buys').textContent  = buys;
+    document.getElementById('stat-sells').textContent = sells;
+    document.getElementById('stat-holds').textContent = holds;
+    document.getElementById('stat-conf').textContent  = avgConf !== null ? avgConf + '%' : '—';
+
+    document.getElementById('stats-bar').style.display = '';
+    document.getElementById('toolbar').style.display   = '';
+  }
+
+  // ── Build Table Header ─────────────────────────────────────────────────────
+  function buildTable(signals) {
+    if (!signals.length) {
+      showError('No signals returned from the API.');
+      return;
+    }
+
+    // Auto-detect columns
+    const sample = signals[0];
+    let cols = [];
+
+    // Prefer known columns in friendly order (including flattened nested keys)
+    const knownOrder = [
+      'strategy','symbol','ticker','asset','name',
+      'signal','rawSignal','action','direction',
+      'confidence','size','session',
+      'entry','stopLoss','takeProfit',
+      'rsi','volatilityRegime','regimeProbability',
+      'recentStratReturn','correctionFactor',
+      'rationale','timestamp'
+    ];
+
+    const keys = Object.keys(sample);
+    const ordered = knownOrder.filter(k => keys.includes(k));
+    const rest = keys.filter(k => !ordered.includes(k) && typeof sample[k] !== 'object');
+    cols = [...ordered, ...rest];
+
+    // Build thead
+    document.getElementById('thead').innerHTML = `<tr>${
+      cols.map(c => `<th onclick="sortBy('${c}',this)" title="${c}">
+        ${friendly(c)} <span class="sort-arrow">↕</span>
+      </th>`).join('')
+    }</tr>`;
+
+    window._cols = cols;
+    renderTable();
+
+    document.getElementById('state-message').style.display = 'none';
+    document.getElementById('signals-table').style.display = '';
+  }
+
+  // ── Render Rows ────────────────────────────────────────────────────────────
+  function renderTable() {
+    const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+    const cols = window._cols || [];
+
+    let data = [...allSignals];
+
+    // Filter by signal type
+    if (currentFilter !== 'all') {
+      data = data.filter(s => getSignal(s).toLowerCase().includes(currentFilter));
+    }
+
+    // Search filter
+    if (q) {
+      data = data.filter(s =>
+        cols.some(c => String(s[c] ?? '').toLowerCase().includes(q))
+      );
+    }
+
+    // Sort
+    if (sortKey) {
+      data.sort((a, b) => {
+        const va = a[sortKey], vb = b[sortKey];
+        if (va == null) return 1; if (vb == null) return -1;
+        const r = va < vb ? -1 : va > vb ? 1 : 0;
+        return sortAsc ? r : -r;
+      });
+    }
+
+    document.getElementById('tbody').innerHTML = data.length
+      ? data.map(s => `<tr>${cols.map(c => `<td>${renderCell(c, s[c], s)}</td>`).join('')}</tr>`).join('')
+      : `<tr><td colspan="${cols.length}" style="text-align:center;padding:40px;color:var(--muted)">No signals match your filter.</td></tr>`;
+  }
+
+  // ── Cell Renderer ──────────────────────────────────────────────────────────
+  function renderCell(key, val, row) {
+    if (val == null || val === '') return `<span style="color:var(--muted)">—</span>`;
+
+    const k = key.toLowerCase();
+
+    // Signal / action badge
+    if (/^(signal|action|direction|side)$/.test(k)) {
+      const cls = String(val).toLowerCase().replace(/\s+/g,'_');
+      return `<span class="badge ${cls}">${val}</span>`;
+    }
+
+    // rawSignal: show as +1 / -1 / 0 with color
+    if (k === 'rawsignal') {
+      const color = val > 0 ? 'var(--green)' : val < 0 ? 'var(--red)' : 'var(--muted)';
+      return `<span style="color:${color};font-weight:700">${val > 0 ? '+' : ''}${val}</span>`;
+    }
+
+    // Confidence as a bar (value is 0–1)
+    if (k === 'confidence') {
+      const pct = val <= 1 ? val * 100 : val;
+      const level = pct >= 70 ? 'high' : pct >= 40 ? 'medium' : 'low';
+      return `<div class="conf-wrap">
+        <div class="conf-bar"><div class="conf-fill ${level}" style="width:${Math.min(pct,100)}%"></div></div>
+        <span class="conf-pct">${Math.round(pct)}%</span>
+      </div>`;
+    }
+
+    // Symbol
+    if (/^(symbol|ticker|asset)$/.test(k)) {
+      return `<span class="symbol">${val}</span>`;
+    }
+
+    // Strategy — show as pill
+    if (k === 'strategy') {
+      return `<span style="background:var(--border);padding:3px 8px;border-radius:4px;font-size:12px">${val}</span>`;
+    }
+
+    // Session — uppercase pill
+    if (k === 'session') {
+      return `<span style="color:var(--blue);font-size:12px;font-weight:600;text-transform:uppercase">${val}</span>`;
+    }
+
+    // Price levels (entry, stopLoss, takeProfit)
+    if (/^(entry|stoploss|takeprofit|price)$/.test(k) && typeof val === 'number') {
+      const color = k === 'takeprofit' ? 'var(--green)' : k === 'stoploss' ? 'var(--red)' : 'var(--text)';
+      return `<span class="price" style="color:${color}">${val.toFixed(5)}</span>`;
+    }
+
+    // Position size
+    if (k === 'size' && typeof val === 'number') {
+      return `<span style="font-family:monospace">${(val * 100).toFixed(1)}%</span>`;
+    }
+
+    // Volatility regime — highlight
+    if (k === 'volatilityregime') {
+      const color = /risk.on/i.test(val) ? 'var(--green)' : /risk.off/i.test(val) ? 'var(--red)' : 'var(--yellow)';
+      return `<span style="color:${color};font-size:12px">${val}</span>`;
+    }
+
+    // Small probabilities / factors (0–1 range)
+    if (/probability|factor|return/i.test(k) && typeof val === 'number') {
+      const pct = Math.abs(val) <= 1 ? (val * 100).toFixed(1) + '%' : val.toFixed(4);
+      const color = val >= 0 ? 'var(--green)' : 'var(--red)';
+      return `<span style="color:${color};font-family:monospace">${val >= 0 ? '+' : ''}${pct}</span>`;
+    }
+
+    // RSI
+    if (k === 'rsi' && typeof val === 'number') {
+      const color = val < 30 ? 'var(--green)' : val > 70 ? 'var(--red)' : 'var(--text)';
+      return `<span style="color:${color};font-family:monospace">${val.toFixed(1)}</span>`;
+    }
+
+    // Rationale — truncate with tooltip
+    if (k === 'rationale') {
+      const short = val.length > 60 ? val.slice(0, 60) + '…' : val;
+      return `<span title="${val.replace(/"/g,'&quot;')}" style="font-size:12px;color:var(--muted);cursor:help">${short}</span>`;
+    }
+
+    // Timestamps
+    if (/time|date|at$/.test(k)) {
+      const d = new Date(val);
+      if (!isNaN(d)) return `<span class="ts">${d.toLocaleString()}</span>`;
+    }
+
+    // Generic numbers
+    if (typeof val === 'number') {
+      return `<span style="font-family:monospace">${val}</span>`;
+    }
+
+    return String(val);
+  }
+
+  // ── Sort ───────────────────────────────────────────────────────────────────
+  function sortBy(key, th) {
+    if (sortKey === key) sortAsc = !sortAsc;
+    else { sortKey = key; sortAsc = true; }
+    document.querySelectorAll('thead th').forEach(t => t.classList.remove('sorted'));
+    th.classList.add('sorted');
+    th.querySelector('.sort-arrow').textContent = sortAsc ? '↑' : '↓';
+    renderTable();
+  }
+
+  // ── Filter ─────────────────────────────────────────────────────────────────
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTable();
+  }
+
+  // ── Flatten nested objects into top-level keys ─────────────────────────────
+  function flattenSignal(s) {
+    const out = {};
+    for (const [k, v] of Object.entries(s)) {
+      if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+        // Merge nested object keys directly (e.g. levels.entry → entry)
+        for (const [nk, nv] of Object.entries(v)) {
+          out[nk] = nv;
+        }
+      } else {
+        out[k] = v;
+      }
+    }
+    return out;
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function getSignal(s) {
+    return String(s.signal || s.action || s.direction || s.side || '');
+  }
+
+  function getConf(s) {
+    const v = s.confidence ?? s.score ?? s.strength;
+    if (v == null) return null;
+    const n = typeof v === 'number' ? v : parseFloat(v);
+    return isNaN(n) ? null : (n > 1 ? n : n * 100);
+  }
+
+  function friendly(key) {
+    return key.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  function showError(msg, isCors) {
+    const corsHint = isCors ? `
+      <div class="error-hint">
+        <b>This is a CORS error.</b> The API server is blocking browser requests from local files.<br><br>
+        <b>Quick fix — run a tiny local server:</b><br>
+        1. Open Terminal / Command Prompt in the folder with this file<br>
+        2. Run: <code style="background:#0d1117;padding:2px 5px;border-radius:3px">npx serve .</code><br>
+        3. Open the URL it gives you (e.g. <code style="background:#0d1117;padding:2px 5px;border-radius:3px">http://localhost:3000</code>)<br><br>
+        Or ask your API provider to add <code style="background:#0d1117;padding:2px 5px;border-radius:3px">Access-Control-Allow-Origin: *</code> to their response headers.
+      </div>` : '';
+
+    const authHint = msg.includes('401') || msg.includes('403') ? `
+      <div class="error-hint">
+        <b>Authentication failed.</b> Your API key may be invalid or expired. Check that the bearer token is correct.
+      </div>` : '';
+
+    document.getElementById('state-message').innerHTML = `
+      <div class="error-icon">⚠️</div>
+      <div class="error-text">Could not load signals</div>
+      <div class="error-code">${msg}</div>
+      ${corsHint}${authHint}`;
+    document.getElementById('state-message').style.display = '';
+    document.getElementById('signals-table').style.display = 'none';
+  }
+
+  function toggleRaw() {
+    rawVisible = !rawVisible;
+    const drawer = document.getElementById('raw-drawer');
+    const btn    = document.getElementById('raw-toggle');
+    drawer.style.display = rawVisible ? 'block' : 'none';
+    btn.textContent = rawVisible ? '▾ Hide raw JSON' : '▸ Show raw JSON';
+  }
+
+  // ── Boot ───────────────────────────────────────────────────────────────────
+  loadSignals();
+  setInterval(loadSignals, 60_000);  // auto-refresh every 60 s
+</script>
+
+</body>
+</html>
