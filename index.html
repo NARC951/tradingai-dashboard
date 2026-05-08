@@ -453,9 +453,8 @@
 </footer>
 
 <script>
-  // Always call /signals on the same host — works locally and on Railway
-  const API_URL = `${location.protocol}//${location.host}/signals`;
-  const API_KEY = null; // key is handled server-side
+  const API_URL = 'https://tradingai-production-f08f.up.railway.app/v1/signals';
+  const API_KEY = 'tsk_live_7e3a918f69e59fd255fee1e9d0b0fc45dca335c7';
 
   let allSignals = [];
   let currentFilter = 'all';
@@ -470,8 +469,7 @@
     setStatus('connecting');
 
     try {
-      const headers = {};
-      if (API_KEY) headers['Authorization'] = `Bearer ${API_KEY}`;
+      const headers = { 'Authorization': `Bearer ${API_KEY}` };
       const res = await fetch(API_URL, { headers });
 
       if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
